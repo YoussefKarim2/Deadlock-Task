@@ -1,0 +1,132 @@
+#include <iostream>
+#include <fstream>
+using namespace std;
+
+int main()
+{
+    int n, m;
+
+    // open the input file that contains all system data
+    ifstream file("input.txt");
+
+    // read number of processes (n) and number of resource types (m)
+    file >> n >> m;
+
+    int E[10];        // total resources that exist in the system
+    int A[10];        // resources currently available
+    int C[10][10];    // allocation matrix (what each process already has)
+    int R[10][10];    // request matrix (what each process still needs)
+    bool finished[10]; // tells if a process has finished or not
+
+    // read total resources and copy them to available resources
+    for (int i = 0; i < m; i++)
+    {
+        file >> E[i];
+        A[i] = E[i];  // at the start we assume all resources are available
+    }
+
+    // read allocation matrix
+    for (int i = 0; i < n; i++)      // go through each process
+    {
+        for (int j = 0; j < m; j++)  // go through each resource type
+        {
+            file >> C[i][j];         // read how many resources the process holds
+            A[j] -= C[i][j];         // subtract them from available resources
+        }
+    }
+
+    // read request matrix
+    for (int i = 0; i < n; i++)      // each process
+    {
+        for (int j = 0; j < m; j++)  // each resource type
+        {
+            file >> R[i][j];         // read how many more resources it needs
+        }
+    }
+
+    // set all processes as not finished at the start
+    for (int i = 0; i < n; i++)
+    {
+        finished[i] = false;
+    }
+
+    bool progress = true; // used to check if any process was able to run
+
+    // deadlock detection loop
+    // it keeps checking processes until no more can run
+    while (progress)
+    {
+        progress = false; // assume no process will run this round
+
+        for (int i = 0; i < n; i++)  // check every process
+        {
+            if (!finished[i])        // only check unfinished processes
+            {
+                bool canRun = true;  // assume the process can run
+
+                // check if all requested resources are available
+                for (int j = 0; j < m; j++) // check each resource type
+                {
+                    if (R[i][j] > A[j])     // if request is greater than available
+                    {
+                        canRun = false;     // process cannot run now
+                        break;              // stop checking this process
+                    }
+                }
+
+                if (canRun)
+                {
+                    // simulate the process finishing
+                    // when a process finishes it releases its resources
+                    for (int j = 0; j < m; j++)
+                    {
+                        A[j] += C[i][j]; // add its resources back to available
+                    }
+
+                    finished[i] = true;  // mark the process as finished
+                    progress = true;     // we made progress so loop should continue
+                }
+            }
+        }
+    }
+
+    bool deadlock = false;
+
+    // check if any process never finished
+    // those processes are deadlocked
+    for (int i = 0; i < n; i++)
+    {
+        if (!finished[i])
+        {
+            deadlock = true;
+        }
+    }
+
+    // print the result
+    if (deadlock)
+    {
+        cout << "Deadlock detected." << endl;
+        cout << "Deadlocked processes: ";
+
+        // print all processes that did not finish
+        for (int i = 0; i < n; i++)
+        {
+            if (!finished[i])
+            {
+                cout << "P" << i << " ";
+            }
+        }
+
+        cout << endl;
+    }
+    else
+    {
+        // if all processes finished, there is no deadlock
+        cout << "No deadlock detected." << endl;
+    }
+
+    // close the input file
+    file.close();
+
+    return 0;
+}
